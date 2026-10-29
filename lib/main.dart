@@ -42,6 +42,7 @@ class WelcomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // se cambia el icono
             const Icon(Icons.task_alt, size: 56, color: Colors.indigo),
             const SizedBox(height: 24),
             Text(
