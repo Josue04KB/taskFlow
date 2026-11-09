@@ -16,99 +16,127 @@ class TaskFlowApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
       ),
-      home: const WelcomeScreen(),
+      // Desarrollo C: Cambiamos WelcomeScreen() por TaskListScreen()
+      home: const TaskListScreen(),
     );
   }
 }
 
-class WelcomeScreen extends StatefulWidget {
-  const WelcomeScreen({super.key});
+// Desarrollo A: Modelo de datos Task
+class Task {
+  const Task({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.priority,
+    required this.isCompleted,
+  });
 
-  @override
-  State<WelcomeScreen> createState() => _WelcomeScreenState();
+  final int id;
+  final String title;
+  final String description;
+  final String priority;
+  final bool isCompleted;
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
-  final String studentName = 'Josué Sosa';
-  int pendingTasks = 3;
+// Trabajo Autónomo Incremental: 5 tareas auténticas del proyecto
+const demoTasks = [
+  Task(
+    id: 1,
+    title: 'Configurar estructura del proyecto',
+    description: 'Inicializar repositorio Git y verificar entorno Flutter',
+    priority: 'Alta',
+    isCompleted: true,
+  ),
+  Task(
+    id: 2,
+    title: 'Modelar entidad Task',
+    description: 'Definir propiedades inmutables id, título, descripción y prioridad',
+    priority: 'Alta',
+    isCompleted: true,
+  ),
+  Task(
+    id: 3,
+    title: 'Construir widget TaskCard',
+    description: 'Diseñar tarjeta reutilizable con ListTile e indicadores de estado',
+    priority: 'Media',
+    isCompleted: false,
+  ),
+  Task(
+    id: 4,
+    title: 'Implementar ListView.builder',
+    description: 'Renderizar el listado dinámico de tareas bajo demanda en pantalla',
+    priority: 'Alta',
+    isCompleted: false,
+  ),
+  Task(
+    id: 5,
+    title: 'Ejecutar análisis estático y formato',
+    description: 'Validar calidad del código con dart format y flutter analyze',
+    priority: 'Baja',
+    isCompleted: false,
+  ),
+];
 
-  // Paso 7: Trabajo autónomo incremental (Objetivo diario)
-  static const dailyGoal = 5;
-  int completedTasks = 0;
+// Desarrollo B: Widget reutilizable TaskCard
+class TaskCard extends StatelessWidget {
+  const TaskCard({super.key, required this.task});
 
-  void _addTask() {
-    setState(() {
-      pendingTasks++;
-    });
-  }
-
-  void _completeTask() {
-    if (pendingTasks == 0) {
-      return;
-    }
-
-    setState(() {
-      pendingTasks--;
-      if (completedTasks < dailyGoal) {
-        completedTasks++;
-      }
-    });
-  }
+  final Task task;
 
   @override
   Widget build(BuildContext context) {
-    final statusMessage = pendingTasks == 0
-        ? '¡Excelente! No tienes tareas pendientes.'
-        : 'Aún tienes tareas por organizar.';
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('TaskFlow'), centerTitle: true),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '¡Hola, $studentName!',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 12),
-            Text(statusMessage),
-            const SizedBox(height: 8),
-            // Paso 7: Mostrar tareas completadas hoy respecto al objetivo diario
-            Text('Completadas hoy: $completedTasks de $dailyGoal'),
-            const SizedBox(height: 28),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    const Icon(Icons.pending_actions),
-                    const SizedBox(width: 12),
-                    Text('Tareas pendientes: $pendingTasks'),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _addTask,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Agregar tarea'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: pendingTasks == 0 ? null : _completeTask,
-                  icon: const Icon(Icons.done),
-                  label: const Text('Completar una tarea'),
-                ),
-              ],
-            ),
-          ],
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: Icon(
+          task.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+          color: task.isCompleted ? Colors.green : null,
         ),
+        title: Text(
+          task.title,
+          style: TextStyle(
+            decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+          ),
+        ),
+        // Usamos interpolación de cadenas para que flutter analyze no marque advertencia
+        subtitle: Text('${task.priority} · ${task.description}'),
+        trailing: const Icon(Icons.chevron_right),
+        // Trabajo Autónomo: Acción visual de detalle al tocar la tarjeta
+        onTap: () {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Detalle [#${task.id}]: ${task.title} (${task.isCompleted ? "Completada" : "Pendiente"})',
+              ),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Desarrollo C: Pantalla de listado con ListView.builder
+class TaskListScreen extends StatelessWidget {
+  const TaskListScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mis tareas'),
+        centerTitle: true,
+      ),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: demoTasks.length,
+        itemBuilder: (context, index) {
+          final task = demoTasks[index];
+          return TaskCard(task: task);
+        },
       ),
     );
   }
