@@ -1,29 +1,51 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:taskflow/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('Muestra cinco tareas y abre el detalle de la elegida', (
+    tester,
+  ) async {
     await tester.pumpWidget(const TaskFlowApp());
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(find.text('Mis tareas'), findsOneWidget);
+    expect(find.byType(ListTile), findsNWidgets(5));
+    expect(demoTasks.map((task) => task.id).toSet(), hasLength(5));
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    for (final task in [demoTasks.first, demoTasks[2]]) {
+      await tester.tap(find.text(task.title));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Detalle de tarea #${task.id}'), findsOneWidget);
+      expect(find.text(task.title), findsOneWidget);
+      expect(find.text(task.description), findsOneWidget);
+      expect(find.text('Prioridad: ${task.priority}'), findsOneWidget);
+      expect(find.text('Usuario: ${task.userId}'), findsOneWidget);
+      expect(
+        find.text(
+          task.isCompleted ? 'Estado: completada' : 'Estado: pendiente',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.text('Mis tareas'), findsOneWidget);
+    }
+  });
+
+  testWidgets('Muestra un mensaje para IDs inexistentes o inválidos', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const TaskFlowApp());
+
+    for (final path in ['/task/999', '/task/invalido']) {
+      appRouter.go(path);
+      await tester.pumpAndSettle();
+      expect(find.text('No se encontró esta tarea.'), findsOneWidget);
+    }
+
+    appRouter.go('/');
+    await tester.pumpAndSettle();
   });
 }
