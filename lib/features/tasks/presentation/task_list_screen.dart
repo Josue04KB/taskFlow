@@ -9,10 +9,19 @@ class TaskListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tasks = context.watch<TasksViewModel>().tasks;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mis tareas')),
-      body: ListView.builder(
+    final viewModel = context.watch<TasksViewModel>();
+    final tasks = viewModel.tasks;
+    final errorMessage = viewModel.errorMessage;
+    final Widget body;
+
+    if (viewModel.isLoading) {
+      body = const Center(child: CircularProgressIndicator());
+    } else if (errorMessage != null) {
+      body = Center(child: Text(errorMessage));
+    } else if (tasks.isEmpty) {
+      body = const Center(child: Text('No hay tareas para mostrar.'));
+    } else {
+      body = ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: tasks.length,
         itemBuilder: (context, index) {
@@ -31,7 +40,12 @@ class TaskListScreen extends StatelessWidget {
             ),
           );
         },
-      ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Mis tareas')),
+      body: body,
     );
   }
 }

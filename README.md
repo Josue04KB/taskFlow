@@ -20,11 +20,11 @@ samples, guidance on mobile development, and a full API reference.
 
 Un estudiante que prepara un proyecto de Flutter necesita reunir en un solo lugar las actividades de configuración, modelado, interfaz, navegación y revisión, para saber qué ha completado y qué requiere atención.
 
-El usuario objetivo es un estudiante que organiza el trabajo semanal de su proyecto. En la sesión 5 puede consultar cinco tareas locales y abrir sus detalles. La creación, edición y eliminación se implementarán en sesiones posteriores.
+El usuario objetivo es un estudiante que organiza el trabajo semanal de su proyecto. Desde la sesión 7 puede consultar tareas de la API de práctica y abrir sus detalles. Las cinco tareas originales quedan disponibles en el repositorio local. La creación, edición y eliminación se implementarán en sesiones posteriores.
 
 ### Historias de usuario y criterios de aceptación
 
-1. Como estudiante, quiero listar mis tareas para decidir en qué trabajar primero. **Criterio de aceptación.** La lista muestra cinco tarjetas con título, prioridad e icono de estado.
+1. Como estudiante, quiero listar mis tareas para decidir en qué trabajar primero. **Criterio de aceptación.** La lista muestra las tareas de la fuente configurada en tarjetas con título, prioridad e icono de estado.
 2. Como estudiante, quiero consultar una tarea para leer sus instrucciones. **Criterio de aceptación.** Al tocar una tarjeta, su detalle muestra el identificador, título, descripción, prioridad, estado y usuario de esa tarea.
 3. Como estudiante, quiero crear una tarea para registrar una actividad nueva. **Criterio de aceptación.** Al guardar un formulario con título, descripción y prioridad válidos, la nueva tarea aparece como pendiente en la lista.
 4. Como estudiante, quiero editar una tarea para actualizar sus datos si cambian las instrucciones. **Criterio de aceptación.** Tras guardar un cambio de título, el nuevo título aparece en la lista y en el detalle de la misma tarea.
@@ -54,7 +54,7 @@ El usuario objetivo es un estudiante que organiza el trabajo semanal de su proye
 | `isCompleted` | `bool` | `true` para completada y `false` para pendiente. |
 | `userId` | `int` | Identificador del propietario. Las tareas locales pertenecen al usuario de prueba `1`. |
 
-`Task.fromJson` espera estas seis claves con sus tipos correspondientes. Este ejemplo representa una tarea completada del listado local.
+`Task.fromJson` acepta este formato local y el formato de la API de práctica descrito más abajo. Este ejemplo representa una tarea completada del listado local.
 
 ```json
 {
@@ -77,4 +77,12 @@ El usuario objetivo es un estudiante que organiza el trabajo semanal de su proye
 | `PATCH /tasks/:id` | Actualizar los campos de una tarea. |
 | `DELETE /tasks/:id` | Eliminar una tarea. |
 
-La aplicación usa datos locales durante la sesión 5. Estas rutas describen las operaciones que deberá ofrecer la API cuando se integre.
+Estas rutas describen las operaciones previstas para la API del proyecto.
+
+### API de práctica
+
+TaskFlow ejecuta `GET /todos?userId=2` en JSONPlaceholder. El parámetro `userId=2` limita la respuesta a las tareas del segundo usuario de prueba. La constante `TaskApiService.userId` configura ese filtro. [Endpoint de JSONPlaceholder](https://jsonplaceholder.typicode.com/todos?userId=2)
+
+La respuesta incluye `id`, `userId`, `title` y `completed`. `Task.fromJson` convierte `completed` en `isCompleted` y usa `Sin descripción (API)` y `Sin prioridad (API)` para los campos ausentes. La consola registra `GET /todos?userId=2 → HTTP 200` cuando la consulta se atiende correctamente.
+
+`TaskApiService` conoce la URL y convierte el JSON en objetos `Task`. `RemoteTaskRepository` conserva una copia en memoria y `TasksViewModel` avisa a la lista y al detalle. Marcar una tarea cambia esa copia durante la ejecución. Al reiniciar la app, vuelve a mostrarse el estado recibido de la API.
