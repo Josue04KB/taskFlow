@@ -86,3 +86,14 @@ TaskFlow ejecuta `GET /todos?userId=2` en JSONPlaceholder. El parámetro `userId
 La respuesta incluye `id`, `userId`, `title` y `completed`. `Task.fromJson` convierte `completed` en `isCompleted` y usa `Sin descripción (API)` y `Sin prioridad (API)` para los campos ausentes. La consola registra `GET /todos?userId=2 → HTTP 200` cuando la consulta se atiende correctamente.
 
 `TaskApiService` conoce la URL y convierte el JSON en objetos `Task`. `RemoteTaskRepository` conserva una copia en memoria y `TasksViewModel` avisa a la lista y al detalle. Marcar una tarea cambia esa copia durante la ejecución. Al reiniciar la app, vuelve a mostrarse el estado recibido de la API.
+
+### Estados de la lista remota
+
+| Estado | Cómo provocarlo y qué observar |
+| --- | --- |
+| Carga | Limita la velocidad de la red del emulador o navegador y pulsa el icono **Actualizar tareas**. Mientras la consulta está pendiente aparece un indicador y el icono queda deshabilitado. |
+| Éxito | Con conexión y `userId=2`, inicia la app. Abre una tarjeta y comprueba que el detalle corresponde a esa tarea. Vuelve a la lista y desliza hacia abajo para consultar de nuevo. |
+| Vacío | Cambia temporalmente `TaskApiService.userId` a `9999` y reinicia la app. La API devuelve una lista vacía y se muestra «Todavía no hay tareas para mostrar» con el botón **Actualizar**. Restablece `userId=2` al terminar. |
+| Error y reintento | Con la app abierta, interrumpe la conexión y pulsa **Actualizar tareas**. Cuando aparezca «No se pudieron cargar las tareas», restablece la conexión y pulsa **Reintentar**. La lista vuelve a aparecer en la misma ejecución. |
+
+Actualizar vuelve a leer el estado del servidor y reemplaza las marcas que se hicieron en memoria.

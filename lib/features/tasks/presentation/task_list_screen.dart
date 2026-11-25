@@ -10,18 +10,58 @@ class TaskListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<TasksViewModel>();
-    final tasks = viewModel.tasks;
-    final errorMessage = viewModel.errorMessage;
-    final Widget body;
+    Future<void> refresh() => context.read<TasksViewModel>().loadTasks();
 
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mis tareas'),
+        actions: [
+          IconButton(
+            tooltip: 'Actualizar tareas',
+            onPressed: viewModel.isLoading ? null : refresh,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: _buildBody(viewModel, refresh),
+    );
+  }
+
+  Widget _buildBody(TasksViewModel viewModel, Future<void> Function() refresh) {
     if (viewModel.isLoading) {
-      body = const Center(child: CircularProgressIndicator());
-    } else if (errorMessage != null) {
-      body = Center(child: Text(errorMessage));
-    } else if (tasks.isEmpty) {
-      body = const Center(child: Text('No hay tareas para mostrar.'));
-    } else {
-      body = ListView.builder(
+      return const Center(
+        child: CircularProgressIndicator(semanticsLabel: 'Cargando tareas'),
+      );
+    }
+
+    final errorMessage = viewModel.errorMessage;
+    if (errorMessage != null || viewModel.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                errorMessage ?? 'Todavía no hay tareas para mostrar.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: refresh,
+                child: Text(errorMessage == null ? 'Actualizar' : 'Reintentar'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final tasks = viewModel.tasks;
+    return RefreshIndicator(
+      onRefresh: refresh,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         itemCount: tasks.length,
         itemBuilder: (context, index) {
@@ -40,12 +80,7 @@ class TaskListScreen extends StatelessWidget {
             ),
           );
         },
-      );
-    }
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mis tareas')),
-      body: body,
+      ),
     );
   }
 }
