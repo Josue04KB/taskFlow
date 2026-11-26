@@ -20,7 +20,7 @@ samples, guidance on mobile development, and a full API reference.
 
 Un estudiante que prepara un proyecto de Flutter necesita reunir en un solo lugar las actividades de configuración, modelado, interfaz, navegación y revisión, para saber qué ha completado y qué requiere atención.
 
-El usuario objetivo es un estudiante que organiza el trabajo semanal de su proyecto. Desde la sesión 7 puede consultar tareas de la API de práctica y abrir sus detalles. Las cinco tareas originales quedan disponibles en el repositorio local. La creación, edición y eliminación se implementarán en sesiones posteriores.
+El usuario objetivo es un estudiante que organiza el trabajo semanal de su proyecto. Desde la sesión 7 puede consultar tareas de la API de práctica y abrir sus detalles. La sesión 9 incorpora un formulario para preparar una tarea nueva. Las cinco tareas originales quedan disponibles en el repositorio local. La creación remota, edición y eliminación se implementarán en sesiones posteriores.
 
 ### Historias de usuario y criterios de aceptación
 
@@ -34,9 +34,9 @@ El usuario objetivo es un estudiante que organiza el trabajo semanal de su proye
 
 | Pantalla | Contenido y acciones |
 | --- | --- |
-| Lista | Tarjetas con título, prioridad y estado. Desde cada tarjeta se abre el detalle. En una sesión posterior se añadirá la acción para crear una tarea. |
+| Lista | Tarjetas con título, prioridad y estado. Desde cada tarjeta se abre el detalle. **Nueva tarea** abre el formulario. |
 | Detalle | Identificador, título, descripción, prioridad, estado y usuario de la tarea elegida. Las acciones de editar y eliminar quedan previstas. |
-| Formulario | Pantalla futura con campos de título, descripción y prioridad para crear o editar una tarea. |
+| Formulario | Valida título, descripción y prioridad para preparar una tarea nueva. Permite elegir una fecha opcional. |
 
 ### Requisitos no funcionales
 
@@ -97,3 +97,9 @@ La respuesta incluye `id`, `userId`, `title` y `completed`. `Task.fromJson` conv
 | Error y reintento | Con la app abierta, interrumpe la conexión y pulsa **Actualizar tareas**. Cuando aparezca «No se pudieron cargar las tareas», restablece la conexión y pulsa **Reintentar**. La lista vuelve a aparecer en la misma ejecución. |
 
 Actualizar vuelve a leer el estado del servidor y reemplaza las marcas que se hicieron en memoria.
+
+### Formulario de nueva tarea
+
+Desde **Mis tareas**, pulsa **Nueva tarea**. El título requiere al menos tres caracteres y la descripción debe tener contenido. Ambos se guardan sin espacios al inicio o al final. La prioridad inicial es **Media** y se puede cambiar a **Alta** o **Baja**. El calendario está en español y la fecha se puede quitar después de seleccionarla.
+
+Al pulsar **Guardar**, la validación mantiene el formulario abierto si hay errores. Con datos válidos, la lista recibe el borrador temporal y muestra «Formulario válido» junto al título. **Cancelar** vuelve a la lista sin mensaje. El envío a la API mediante `POST` corresponde a la sesión 10.

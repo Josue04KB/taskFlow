@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'task_form_screen.dart';
 import 'tasks_view_model.dart';
 
 class TaskListScreen extends StatelessWidget {
@@ -24,6 +25,17 @@ class TaskListScreen extends StatelessWidget {
         ],
       ),
       body: _buildBody(viewModel, refresh),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          final draft = await context.push<TaskDraft>('/new');
+          if (!context.mounted || draft == null) return;
+
+          showTaskDraftConfirmation(context, draft);
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Nueva tarea'),
+      ),
     );
   }
 
@@ -62,7 +74,7 @@ class TaskListScreen extends StatelessWidget {
       onRefresh: refresh,
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
         itemCount: tasks.length,
         itemBuilder: (context, index) {
           final task = tasks[index];
