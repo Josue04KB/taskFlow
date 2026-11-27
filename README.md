@@ -20,7 +20,7 @@ samples, guidance on mobile development, and a full API reference.
 
 Un estudiante que prepara un proyecto de Flutter necesita reunir en un solo lugar las actividades de configuración, modelado, interfaz, navegación y revisión, para saber qué ha completado y qué requiere atención.
 
-El usuario objetivo es un estudiante que organiza el trabajo semanal de su proyecto. Desde la sesión 7 puede consultar tareas de la API de práctica y abrir sus detalles. La sesión 9 incorpora un formulario para preparar una tarea nueva. Las cinco tareas originales quedan disponibles en el repositorio local. La creación remota, edición y eliminación se implementarán en sesiones posteriores.
+El usuario objetivo es un estudiante que organiza el trabajo semanal de su proyecto. Puede consultar tareas de la API de práctica, abrir sus detalles, crear tareas, cambiarles el título y eliminarlas durante la sesión. Las cinco tareas originales quedan disponibles en el repositorio local.
 
 ### Historias de usuario y criterios de aceptación
 
@@ -35,8 +35,8 @@ El usuario objetivo es un estudiante que organiza el trabajo semanal de su proye
 | Pantalla | Contenido y acciones |
 | --- | --- |
 | Lista | Tarjetas con título, prioridad y estado. Desde cada tarjeta se abre el detalle. **Nueva tarea** abre el formulario. |
-| Detalle | Identificador, título, descripción, prioridad, estado y usuario de la tarea elegida. Las acciones de editar y eliminar quedan previstas. |
-| Formulario | Valida título, descripción y prioridad para preparar una tarea nueva. Permite elegir una fecha opcional. |
+| Detalle | Muestra los datos de la tarea y permite cambiar el título o confirmar su eliminación. |
+| Formulario | Valida título, descripción y prioridad antes de crear una tarea. Permite elegir una fecha opcional. |
 
 ### Requisitos no funcionales
 
@@ -102,4 +102,14 @@ Actualizar vuelve a leer el estado del servidor y reemplaza las marcas que se hi
 
 Desde **Mis tareas**, pulsa **Nueva tarea**. El título requiere al menos tres caracteres y la descripción debe tener contenido. Ambos se guardan sin espacios al inicio o al final. La prioridad inicial es **Media** y se puede cambiar a **Alta** o **Baja**. El calendario está en español y la fecha se puede quitar después de seleccionarla.
 
-Al pulsar **Guardar**, la validación mantiene el formulario abierto si hay errores. Con datos válidos, la lista recibe el borrador temporal y muestra «Formulario válido» junto al título. **Cancelar** vuelve a la lista sin mensaje. El envío a la API mediante `POST` corresponde a la sesión 10.
+Al pulsar **Guardar**, la validación mantiene el formulario abierto si hay errores. Con datos válidos, se envía `POST /todos` y, tras la confirmación, aparece la tarea en la lista. Si el envío falla, el formulario conserva los datos para reintentar. **Cancelar** vuelve a la lista sin enviar el borrador.
+
+### Escrituras de práctica
+
+| Acción | Petición a JSONPlaceholder |
+| --- | --- |
+| Crear una tarea | `POST /todos` con `title`, `completed` y `userId`. |
+| Editar el título de una tarea obtenida por GET | `PATCH /todos/:id` con `title` y `completed`. |
+| Eliminar una tarea obtenida por GET | `DELETE /todos/:id` después de confirmar. |
+
+JSONPlaceholder simula las escrituras. TaskFlow conserva los cambios en memoria durante la sesión y la siguiente consulta recupera los datos originales. La descripción, la prioridad y la fecha de las tareas nuevas también se guardan en memoria. Los registros creados con POST pueden recibir el mismo ID simulado, así que TaskFlow asigna un ID temporal si hay una colisión. Esas tareas se pueden editar y eliminar localmente hasta la próxima recarga. [Guía de JSONPlaceholder](https://jsonplaceholder.typicode.com/guide/)

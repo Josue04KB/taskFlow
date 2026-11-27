@@ -291,9 +291,10 @@ void main() {
 
     await tester.tap(save);
     await tester.pumpAndSettle();
-    expect(find.text('Formulario válido: Preparar entrega'), findsOneWidget);
+    expect(find.text('Tarea creada'), findsOneWidget);
+    expect(find.text('Preparar entrega'), findsOneWidget);
     expect(find.byType(TaskFormScreen), findsNothing);
-    expect(find.byType(ListTile), findsNWidgets(5));
+    expect(find.byType(ListTile), findsNWidgets(6));
   });
 
   testWidgets('Devuelve la fecha elegida y permite cancelar sin mensaje', (
@@ -336,4 +337,151 @@ void main() {
     expect(find.text('Mis tareas'), findsOneWidget);
     expect(find.byType(SnackBar), findsNothing);
   });
+
+  testWidgets('Crea, edita y elimina después de la respuesta HTTP', (
+    tester,
+  ) async {
+    final dio = Dio();
+    addTearDown(dio.close);
+    final requests = <RequestOptions>[];
+    var rejectCreation = true;
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          requests.add(options);
+          if (options.method == 'POST' && rejectCreation) {
+            handler.reject(
+              DioException.connectionError(
+                requestOptions: options,
+                reason: 'Conexión interrumpida en la prueba',
+              ),
+            );
+            return;
+          }
+
+          final data = switch (options.method) {
+            'GET' => [_remoteTask],
+            'POST' => {'id': 201, ...(options.data as Map<String, dynamic>)},
+            _ => null,
+          };
+          handler.resolve(
+            Response(
+              requestOptions: options,
+              statusCode: options.method == 'POST' ? 201 : 200,
+              data: data,
+            ),
+          );
+        },
+      ),
+    );
+    final repository = RemoteTaskRepository(TaskApiService(dio: dio));
+    await tester.pumpWidget(_appWithRepository(repository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Nueva tarea'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Título'),
+      'Entrega nueva',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Descripción'),
+      'Revisar y entregar.',
+    );
+    final save = find.widgetWithText(FilledButton, 'Guardar');
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(find.text('No se pudo crear la tarea.'), findsOneWidget);
+    expect(find.text('Tarea creada'), findsNothing);
+    expect(find.text('Entrega nueva'), findsOneWidget);
+    expect(find.byType(TaskFormScreen), findsOneWidget);
+
+    rejectCreation = false;
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(requests.last.method, 'POST');
+    expect(requests.last.path, '/todos');
+    expect(requests.last.data, {
+      'title': 'Entrega nueva',
+      'completed': false,
+      'userId': 2,
+    });
+    expect(find.text('Tarea creada'), findsOneWidget);
+    expect(find.text('Entrega nueva'), findsOneWidget);
+
+    await tester.tap(find.text('Tarea remota'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Editar título'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), ' ab ');
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(find.text('Usa al menos 3 caracteres.'), findsOneWidget);
+    expect(requests.last.method, 'POST');
+
+    await tester.enterText(find.byType(TextFormField), ' Tarea editada ');
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(requests.last.method, 'PATCH');
+    expect(requests.last.path, '/todos/21');
+    expect(requests.last.data, {'title': 'Tarea editada', 'completed': false});
+    expect(find.text('Tarea editada'), findsOneWidget);
+
+    final delete = find.widgetWithText(TextButton, 'Eliminar tarea');
+    await tester.tap(delete);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Cancelar'));
+    await tester.pumpAndSettle();
+    expect(requests.last.method, 'PATCH');
+    expect(find.text('Tarea editada'), findsOneWidget);
+
+    await tester.tap(delete);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Eliminar'));
+    await tester.pumpAndSettle();
+    expect(requests.last.method, 'DELETE');
+    expect(requests.last.path, '/todos/21');
+    expect(find.text('Tarea eliminada'), findsOneWidget);
+    expect(find.text('Tarea editada'), findsNothing);
+    expect(find.text('Entrega nueva'), findsOneWidget);
+  });
+
+  test(
+    'Identifica por separado dos altas que reutilizan el ID remoto',
+    () async {
+      final dio = Dio();
+      addTearDown(dio.close);
+      final methods = <String>[];
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            methods.add(options.method);
+            handler.resolve(
+              Response(
+                requestOptions: options,
+                statusCode: 201,
+                data: {'id': 201, ...(options.data as Map<String, dynamic>)},
+              ),
+            );
+          },
+        ),
+      );
+      final repository = RemoteTaskRepository(TaskApiService(dio: dio));
+      final first = await repository.createTask(
+        'Primera tarea',
+        'Primera descripción',
+        'Alta',
+      );
+      final second = await repository.createTask(
+        'Segunda tarea',
+        'Segunda descripción',
+        'Baja',
+      );
+
+      expect(first.id, isNot(second.id));
+      await repository.updateTask(second.copyWith(title: 'Segunda editada'));
+      await repository.deleteTask(first.id);
+      expect(methods, ['POST', 'POST']);
+    },
+  );
 }

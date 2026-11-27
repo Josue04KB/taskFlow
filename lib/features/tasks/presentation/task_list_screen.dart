@@ -11,6 +11,7 @@ class TaskListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<TasksViewModel>();
+    final busy = viewModel.isLoading || viewModel.isWriting;
     Future<void> refresh() => context.read<TasksViewModel>().loadTasks();
 
     return Scaffold(
@@ -19,20 +20,19 @@ class TaskListScreen extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: 'Actualizar tareas',
-            onPressed: viewModel.isLoading ? null : refresh,
+            onPressed: busy ? null : refresh,
             icon: const Icon(Icons.refresh),
           ),
         ],
       ),
       body: _buildBody(viewModel, refresh),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          ScaffoldMessenger.of(context).clearSnackBars();
-          final draft = await context.push<TaskDraft>('/new');
-          if (!context.mounted || draft == null) return;
-
-          showTaskDraftConfirmation(context, draft);
-        },
+        onPressed: busy
+            ? null
+            : () {
+                ScaffoldMessenger.of(context).clearSnackBars();
+                context.push<TaskDraft>('/new');
+              },
         icon: const Icon(Icons.add),
         label: const Text('Nueva tarea'),
       ),

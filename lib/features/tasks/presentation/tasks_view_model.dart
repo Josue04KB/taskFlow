@@ -9,16 +9,18 @@ class TasksViewModel extends ChangeNotifier {
   final TaskRepository _repository;
   List<Task> _tasks = [];
   bool _isLoading = false;
+  bool _isWriting = false;
   String? _errorMessage;
   bool _disposed = false;
 
   List<Task> get tasks => List.unmodifiable(_tasks);
   bool get isLoading => _isLoading;
+  bool get isWriting => _isWriting;
   String? get errorMessage => _errorMessage;
   bool get isEmpty => !_isLoading && _errorMessage == null && _tasks.isEmpty;
 
   Future<void> loadTasks() async {
-    if (_isLoading || _disposed) return;
+    if (_isLoading || _isWriting || _disposed) return;
 
     _isLoading = true;
     _errorMessage = null;
@@ -44,13 +46,64 @@ class TasksViewModel extends ChangeNotifier {
   }
 
   void toggleCompleted(int id) {
+    if (_isLoading || _isWriting) return;
     final task = findTask(id);
     if (task == null) return;
 
     final updated = task.copyWith(isCompleted: !task.isCompleted);
     _repository.save(updated);
-    _tasks = [for (final item in _tasks) item.id == id ? updated : item];
+    _replaceTask(updated);
     notifyListeners();
+  }
+
+  Future<void> createTask(
+    String title,
+    String description,
+    String priority, {
+    DateTime? dueDate,
+  }) => _write(() async {
+    final task = await _repository.createTask(
+      title,
+      description,
+      priority,
+      dueDate: dueDate,
+    );
+    _tasks = [..._tasks, task];
+    _errorMessage = null;
+  });
+
+  Future<void> updateTask(Task task) => _write(() async {
+    await _repository.updateTask(task);
+    _replaceTask(task);
+  });
+
+  Future<void> deleteTask(int id) => _write(() async {
+    await _repository.deleteTask(id);
+    _tasks = [
+      for (final task in _tasks)
+        if (task.id != id) task,
+    ];
+  });
+
+  void _replaceTask(Task updated) {
+    _tasks = [
+      for (final item in _tasks) item.id == updated.id ? updated : item,
+    ];
+  }
+
+  Future<void> _write(Future<void> Function() operation) async {
+    if (_isLoading || _isWriting || _disposed) {
+      throw StateError('Hay otra operación en curso.');
+    }
+
+    _isWriting = true;
+    notifyListeners();
+    try {
+      await operation();
+    } finally {
+      _isWriting = false;
+      if (!_disposed) notifyListeners();
+    }
   }
 
   @override

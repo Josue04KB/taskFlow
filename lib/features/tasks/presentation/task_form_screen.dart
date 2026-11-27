@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import 'tasks_view_model.dart';
 
 class TaskDraft {
   const TaskDraft({
@@ -15,12 +18,11 @@ class TaskDraft {
   final DateTime? dueDate;
 }
 
-void showTaskDraftConfirmation(BuildContext context, TaskDraft draft) {
-  ScaffoldMessenger.of(context)
-    ..clearSnackBars()
-    ..showSnackBar(
-      SnackBar(content: Text('Formulario válido: ${draft.title}')),
-    );
+String? validateTaskTitle(String? value) {
+  final title = value?.trim() ?? '';
+  if (title.isEmpty) return 'Escribe un título para la tarea.';
+  if (title.length < 3) return 'Usa al menos 3 caracteres.';
+  return null;
 }
 
 class TaskFormScreen extends StatefulWidget {
@@ -60,17 +62,39 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
     setState(() => _dueDate = date);
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    _close(
-      TaskDraft(
-        title: _title.text.trim(),
-        description: _description.text.trim(),
-        priority: _priority!,
-        dueDate: _dueDate,
-      ),
+    final draft = TaskDraft(
+      title: _title.text.trim(),
+      description: _description.text.trim(),
+      priority: _priority!,
+      dueDate: _dueDate,
     );
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await context.read<TasksViewModel>().createTask(
+        draft.title,
+        draft.description,
+        draft.priority,
+        dueDate: draft.dueDate,
+      );
+    } catch (_) {
+      if (mounted) {
+        messenger
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(content: Text('No se pudo crear la tarea.')),
+          );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+    _close(draft);
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(const SnackBar(content: Text('Tarea creada')));
   }
 
   void _close([TaskDraft? draft]) {
@@ -79,7 +103,6 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
       return;
     }
 
-    if (draft != null) showTaskDraftConfirmation(context, draft);
     context.go('/');
   }
 
@@ -87,6 +110,8 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
   Widget build(BuildContext context) {
     const border = OutlineInputBorder();
     final dueDate = _dueDate;
+    final viewModel = context.watch<TasksViewModel>();
+    final busy = viewModel.isLoading || viewModel.isWriting;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Nueva tarea')),
@@ -106,12 +131,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                 textCapitalization: TextCapitalization.sentences,
                 textInputAction: TextInputAction.next,
                 autovalidateMode: AutovalidateMode.onUserInteraction,
-                validator: (value) {
-                  final title = value?.trim() ?? '';
-                  if (title.isEmpty) return 'Escribe un título para la tarea.';
-                  if (title.length < 3) return 'Usa al menos 3 caracteres.';
-                  return null;
-                },
+                validator: validateTaskTitle,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -172,10 +192,13 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                 spacing: 12,
                 overflowSpacing: 8,
                 children: [
-                  TextButton(onPressed: _close, child: const Text('Cancelar')),
+                  TextButton(
+                    onPressed: viewModel.isWriting ? null : _close,
+                    child: const Text('Cancelar'),
+                  ),
                   FilledButton(
-                    onPressed: _submit,
-                    child: const Text('Guardar'),
+                    onPressed: busy ? null : _submit,
+                    child: Text(viewModel.isWriting ? 'Guardando…' : 'Guardar'),
                   ),
                 ],
               ),
